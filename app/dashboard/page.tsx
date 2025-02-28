@@ -83,7 +83,7 @@ export default function Dashboard() {
   const router = useRouter();
   const { subscription, isLoading: isSubLoading, fetchSubscription } = useSubscription();
   const [hasCheckedSubscription, setHasCheckedSubscription] = useState(false);
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+
   const [authTimeout, setAuthTimeout] = useState(false);
 
   // First check - Subscription check
