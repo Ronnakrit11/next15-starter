@@ -12,26 +12,11 @@ import { useRouter } from 'next/navigation';
 // }
 
 const pricingTiers = [
-  {
-    id: "pro",
-    name: "Pro",
-    price: "$19",
-    interval: "/month",
-    description: "Perfect for small teams and startups",
-    features: [
-      "All template features",
-      "Priority support",
-      "Custom branding",
-      "Analytics dashboard",
-      "Team collaboration"
-    ],
-    cta: "Get Started",
-    popular: false
-  },
+ 
   {
     id: "enterprise",
-    name: "Enterprise",
-    price: "$49",
+    name: "Pro",
+    price: "499฿",
     interval: "/month",
     description: "For larger organizations",
     features: [
@@ -43,23 +28,8 @@ const pricingTiers = [
     ],
     cta: "Start Trial",
     popular: true
-  },
-  {
-    id: "custom",
-    name: "Custom",
-    price: "Custom",
-    interval: "",
-    description: "Tailored to your needs",
-    features: [
-      "Custom development",
-      "Dedicated support",
-      "Custom SLA",
-      "On-premise options",
-      "Training sessions"
-    ],
-    cta: "Contact Sales",
-    popular: false
   }
+
 ];
 
 export function PricingSection() {
