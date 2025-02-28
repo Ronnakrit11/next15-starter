@@ -47,7 +47,7 @@ export function PricingSection() {
 
   return (
     <div className="flex justify-center">
-      <div className="grid grid-cols-1 md:grid-cols-1 gap-8 mt-12 max-w-xl md:max-w-2xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-8 mt-12 max-w-xl md:max-w-2xl mx-auto sm:max-w-xl mx-auto">
         {pricingTiers.map((tier, i) => (
           <motion.div
             key={tier.name}
@@ -55,7 +55,7 @@ export function PricingSection() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
             onClick={() => handleTierClick(tier.id)}
-            className={`relative rounded-2xl p-20 shadow-lg cursor-pointer transition-all duration-300 w-full ${
+            className={`relative rounded-2xl p-12 shadow-lg cursor-pointer transition-all duration-300 w-full ${
               selectedTier === tier.id
                 ? 'bg-primary/5 dark:bg-primary/10 ring-2 ring-primary transform scale-105'
                 : 'bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 hover:ring-primary/50'
