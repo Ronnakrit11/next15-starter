@@ -13,7 +13,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      router.replace('/profile');
+      router.replace('/dashboard');
     } else {
       setIsLoading(false);
     }
@@ -34,10 +34,10 @@ export default function LoginPage() {
           return;
         }
         
-        router.replace('/profile');
+        router.replace('/dashboard');
       } else {
         await signInWithEmail(email, password);
-        router.replace('/profile');
+        router.replace('/dashboard');
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Authentication failed');
@@ -69,4 +69,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-}
+} 

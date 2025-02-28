@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useTrialStatus } from '@/hooks/useTrialStatus';
+// import { supabase } from '@/utils/supabase';
 
 // TopBar component handles user profile display and navigation
 export default function TopBar() {
@@ -14,6 +16,7 @@ export default function TopBar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { subscription, isLoading: isLoadingSubscription } = useSubscription();
+  const { isInTrial } = useTrialStatus();
 
   // State for tracking logout process
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -53,6 +56,8 @@ export default function TopBar() {
           <span className="font-sans">NextTemp</span>
         </Link>
 
+        
+
         <div className="flex items-center gap-4">
           {!user ? (
             // Show login button for unauthenticated users
@@ -65,7 +70,7 @@ export default function TopBar() {
           ) : (
             // Show subscription and profile for authenticated users
             <>
-              {!isLoadingSubscription && (
+              {!isLoadingSubscription && (!isInTrial) && (
                 !subscription || 
                 subscription.status === 'canceled' || 
                 (subscription.cancel_at_period_end && new Date(subscription.current_period_end) > new Date())
@@ -78,15 +83,14 @@ export default function TopBar() {
                 </button>
               )}
 
-              {!isLoadingSubscription && 
-                subscription && 
-                ['active', 'trialing'].includes(subscription.status) && 
-                pathname !== '/dashboard' && (
+              {!isLoadingSubscription && (
+                subscription || isInTrial
+              ) && pathname !== '/dashboard' && (
                 <button
                   onClick={() => router.push('/dashboard')}
                   className="hidden sm:block bg-primary hover:bg-primary-dark text-white px-3 sm:px-4 py-1 sm:py-2 rounded-lg transition-colors text-sm sm:text-base"
                 >
-                  Dashboard
+                  {isInTrial ? "Start Free Trial" : "Start Building"}
                 </button>
               )}
               
@@ -129,4 +133,4 @@ export default function TopBar() {
       </div>
     </div>
   );
-}
+} 

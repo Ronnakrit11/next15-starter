@@ -7,14 +7,23 @@ import { useSubscription } from '@/hooks/useSubscription';
 import Link from 'next/link';
 import { AccountManagement } from '@/components/AccountManagement';
 import { ErrorBoundary } from 'react-error-boundary';
-
+import { Suspense } from 'react';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import { StripeBuyButton } from '@/components/StripeBuyButton';
+import { useTrialStatus } from '@/hooks/useTrialStatus';
+// import { PricingSection } from '@/components/PricingSection';
+// import { StripeBuyButton } from '@/components/StripeBuyButton';
+ 
 function ProfileContent() {
   const { user } = useAuth();
   const { subscription, isLoading: isLoadingSubscription, syncWithStripe, fetchSubscription } = useSubscription();
   const router = useRouter();
   const searchParams = useSearchParams();
   const paymentStatus = searchParams.get('payment');
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isInTrial, trialEndTime } = useTrialStatus();
 
   // Show payment success message if redirected from successful payment
   useEffect(() => {
@@ -82,7 +91,30 @@ function ProfileContent() {
     }
   }, [user?.id, fetchSubscription]);
 
-  // Handle reactivating a subscription
+  const handleCancelSubscription = async () => {
+    if (!subscription?.stripe_subscription_id) return;
+    
+    setIsCancelling(true);
+    try {
+      const response = await fetch('/api/stripe/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          subscriptionId: subscription.stripe_subscription_id 
+        }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to cancel subscription');
+      
+      setIsCancelModalOpen(false);
+      router.refresh();
+    } catch (error) {
+      console.error('Error canceling subscription:', error);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   const handleReactivateSubscription = async () => {
     if (!subscription?.stripe_subscription_id) return;
     
@@ -97,11 +129,9 @@ function ProfileContent() {
       
       if (!response.ok) throw new Error('Failed to reactivate subscription');
       
-      await fetchSubscription();
       router.refresh();
     } catch (error) {
       console.error('Error reactivating subscription:', error);
-      setError('Failed to reactivate subscription. Please try again.');
     }
   };
 
@@ -179,23 +209,94 @@ function ProfileContent() {
                   </button>
                 </div>
               ) : (subscription.status === 'active' || subscription.status === 'trialing') ? (
-                <>
-                  <div className="mt-4 flex space-x-4">
-                    <button
-                      onClick={() => router.push('/dashboard')}
-                      className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg"
-                    >
-                      Go to Dashboard
-                    </button>
-                  </div>
-                </>
+                <button
+                  onClick={() => setIsCancelModalOpen(true)}
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg mt-4"
+                >
+                  Cancel Subscription
+                </button>
               ) : null}
             </div>
-          ) : null}
+          ) : (
+            <div className="mt-4 space-y-4">
+              {isInTrial ? (
+                <>
+                  <p className="text-yellow-600 dark:text-yellow-400">
+                    You are currently in your 1-hour trial period. Your trial will end on {' '}
+                    {trialEndTime ? new Date(trialEndTime).toLocaleDateString() : 'soon'}.
+                  </p>
+                  <p>Subscribe now to continue using the app after the trial ends.</p>
+                </>
+              ) : trialEndTime ? (
+                <>
+                  <div className="p-4 bg-red-50 dark:bg-red-900/30 rounded-lg mb-4">
+                    <p className="text-red-600 dark:text-red-400">
+                      Your trial period ended on {new Date(trialEndTime).toLocaleDateString()}.
+                    </p>
+                    <p className="mt-2">Subscribe now to regain access to the cooking experience.</p>
+                  </div>
+                </>
+              ) : (
+                <p>Subscribe to unlock the amazing cooking experience.</p>
+              )}
+              
+              <StripeBuyButton
+                buyButtonId={process.env.NEXT_PUBLIC_STRIPE_BUTTON_ID || ''}
+                publishableKey={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}
+              />
+            </div>
+          )}
         </div>
+
+        {/* Show pricing section if user doesn't have an active subscription */}
+        {/* {(!subscription || subscription.status === 'canceled') && (
+          <PricingSection showFullDetails={true} />
+        )} */}
+
+        {/* Cancel Confirmation Modal */}
+        {isCancelModalOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-xl font-semibold mb-4">Cancel Subscription?</h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                You&apos;ll continue to have access until the end of your billing period on {new Date(subscription?.current_period_end || '').toLocaleDateString()}. No refunds are provided for cancellations.
+              </p>
+              <div className="flex gap-4 justify-end">
+                <button
+                  onClick={() => setIsCancelModalOpen(false)}
+                  className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                  disabled={isCancelling}
+                >
+                  Keep Subscription
+                </button>
+                <button
+                  onClick={handleCancelSubscription}
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                  disabled={isCancelling}
+                >
+                  {isCancelling ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Canceling...
+                    </>
+                  ) : (
+                    'Yes, Cancel'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ErrorBoundary>
   );
-}
+};
 
-export default ProfileContent;
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <ProfileContent />
+    </Suspense>
+  );
+}

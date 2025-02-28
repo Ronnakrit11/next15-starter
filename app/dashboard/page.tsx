@@ -1,9 +1,15 @@
 "use client";
 
+// import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useEffect, useState } from 'react';
+import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+
+
 import { useRouter } from 'next/navigation';
 import { useSubscription } from '@/hooks/useSubscription';
+// import { OnboardingTour } from '@/components/OnboardingTour';
+import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { motion } from 'framer-motion';
 import { 
   BarChart3, 
@@ -79,52 +85,65 @@ const recentActivity = [
 ];
 
 export default function Dashboard() {
+
+  
+  // const { isConnected } = useWebSocket();
+  // const [fullResponse, setFullResponse] = useState('');
   const { user, isSubscriber, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
   const { subscription, isLoading: isSubLoading, fetchSubscription } = useSubscription();
   const [hasCheckedSubscription, setHasCheckedSubscription] = useState(false);
-
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+  const { isInTrial, isLoading: isTrialLoading } = useTrialStatus();
   const [authTimeout, setAuthTimeout] = useState(false);
 
-  // First check - Subscription check
+  // Add new states for dashboard functionality
+  // const [repositories, setRepositories] = useState([]);
+  // const [feedbackSources, setFeedbackSources] = useState([]);
+  // const [recentFeedback, setRecentFeedback] = useState([]);
+  // const [pendingPRs, setPendingPRs] = useState([]);
+
+  // First check - Subscription and trial check
   useEffect(() => {
-    if (isSubLoading) return;
+    if (isSubLoading || isTrialLoading) return;
     
     const hasValidSubscription = ['active', 'trialing'].includes(subscription?.status || '');
     
-    console.log('Access check:', {
+    console.log('Access check isInTrial:', {
       hasSubscription: !!subscription,
       status: subscription?.status,
+      isInTrial: isInTrial,
       validUntil: subscription?.current_period_end
     });
 
-    // Redirect if there's no valid subscription
-    if (!hasValidSubscription) {
-      console.log('No valid subscription, redirecting');
+    // Only redirect if there's no valid subscription AND no valid trial
+    if (!hasValidSubscription && !isInTrial) {
+      console.log('No valid subscription or trial, redirecting');
       router.replace('/profile');
     }
-  }, [subscription, isSubLoading, router]);
+  }, [subscription, isSubLoading, isTrialLoading, router, isInTrial]);
 
   // Second check - Auth check
   useEffect(() => {
-    if (isAuthLoading) return;
+    if (isAuthLoading || isTrialLoading) return;
 
     console.log('Access check:', {
       isSubscriber,
       hasCheckedSubscription,
+      isInTrial: isInTrial,
       authLoading: isAuthLoading,
     });
 
     if (!hasCheckedSubscription) {
       setHasCheckedSubscription(true);
       
-      // Only allow access for subscribers
-      if (!user || (!isSubscriber && !isAuthLoading)) {
-        console.log('No valid subscription, redirecting');
+      // Allow access for both subscribers and trial users
+      if (!user || (!isSubscriber && !isInTrial && !isAuthLoading)) {
+        console.log('No valid subscription or trial, redirecting');
         router.replace('/profile');
       }
     }
-  }, [isSubscriber, isAuthLoading, hasCheckedSubscription, router, user, subscription]);
+  }, [isSubscriber, isAuthLoading, hasCheckedSubscription, router, user, subscription, isTrialLoading, isInTrial]);
 
   // Add refresh effect
   useEffect(() => {
@@ -139,17 +158,41 @@ export default function Dashboard() {
   }, [user?.id, fetchSubscription]);
 
   useEffect(() => {
+    if (user?.id) {
+      // Check if user has completed onboarding
+      const checkOnboarding = async () => {
+        const { data } = await supabase
+          .from('user_preferences')
+          .select('has_completed_onboarding')
+          .eq('user_id', user.id)
+          .single();
+        
+        setHasCompletedOnboarding(!!data?.has_completed_onboarding);
+        console.log('hasCompletedOnboarding: ', hasCompletedOnboarding)
+      };
+      
+      checkOnboarding();
+    }
+  }, [user?.id, hasCompletedOnboarding]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
-      if (!user && (isAuthLoading || isSubLoading)) {
+      if (!user && (isAuthLoading || isTrialLoading)) {
         setAuthTimeout(true);
       }
     }, AUTH_TIMEOUT);
     
     return () => clearTimeout(timer);
-  }, [user, isAuthLoading, isSubLoading]);
+  }, [user, isAuthLoading, isTrialLoading]);
+
+  // useEffect(() => {
+  //   if (!hasCompletedOnboarding) {
+  //     router.push('/onboarding');
+  //   }
+  // }, [hasCompletedOnboarding, router]);
 
   // Update the loading check
-  if (!user && (isAuthLoading || isSubLoading) && !hasCheckedSubscription) {
+  if (!user && (isAuthLoading || isTrialLoading) && !hasCheckedSubscription) {
     console.log('user: ', user)
     console.log('isAuthLoading: ', isAuthLoading)
     console.log('hasCheckedSubscription: ', hasCheckedSubscription)
@@ -167,6 +210,7 @@ export default function Dashboard() {
     );
   }
 
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120]">
       {/* Dashboard Header */}
@@ -178,7 +222,7 @@ export default function Dashboard() {
             </h1>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-slate-600 dark:text-slate-300">
-                Premium Plan
+                {isInTrial ? "Trial Period" : "Premium Plan"}
               </span>
             </div>
           </div>
