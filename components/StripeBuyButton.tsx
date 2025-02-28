@@ -24,7 +24,7 @@ export function StripeBuyButton({ buyButtonId, publishableKey, className }: Stri
       if (event.origin !== 'https://js.stripe.com') return;
       
       if (event.data.type === 'buy-button:success') {
-        console.log('Payment successful, redirecting...');
+        console.log('Payment successful, redirecting...', event.data.payload);
         window.localStorage.setItem('stripe_payment_intent', event.data.payload.paymentIntentId);
         router.push('/profile?payment=success');
         router.refresh();
@@ -63,4 +63,4 @@ export function StripeBuyButton({ buyButtonId, publishableKey, className }: Stri
       }}
     />
   );
-} 
+}

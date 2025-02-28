@@ -24,14 +24,26 @@ function ProfileContent() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isInTrial, trialEndTime } = useTrialStatus();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Show payment success message if redirected from successful payment
   useEffect(() => {
     if (paymentStatus === 'success') {
-      // Could add a toast notification here
-      console.log('Payment successful!');
+      // Store payment intent in localStorage to help with dashboard loading
+      const paymentIntent = window.localStorage.getItem('stripe_payment_intent');
+      if (paymentIntent) {
+        console.log('Payment successful with intent:', paymentIntent);
+      }
+      
+      // Force refresh subscription data
+      if (user?.id && !isRefreshing) {
+        setIsRefreshing(true);
+        fetchSubscription().finally(() => {
+          setIsRefreshing(false);
+        });
+      }
     }
-  }, [paymentStatus]);
+  }, [paymentStatus, user?.id, fetchSubscription, isRefreshing]);
 
   // Add error handling for subscription sync
   useEffect(() => {
@@ -160,6 +172,14 @@ function ProfileContent() {
             <p className="text-green-600 dark:text-green-400">
               🎉 Thank you for your subscription! Your payment was successful.
             </p>
+            <div className="mt-2">
+              <Link
+                href="/dashboard"
+                className="inline-block px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg"
+              >
+                Go to Dashboard
+              </Link>
+            </div>
           </div>
         )}
         

@@ -85,8 +85,6 @@ const recentActivity = [
 ];
 
 export default function Dashboard() {
-
-  
   // const { isConnected } = useWebSocket();
   // const [fullResponse, setFullResponse] = useState('');
   const { user, isSubscriber, isLoading: isAuthLoading } = useAuth();
@@ -96,6 +94,7 @@ export default function Dashboard() {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const { isInTrial, isLoading: isTrialLoading } = useTrialStatus();
   const [authTimeout, setAuthTimeout] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Add new states for dashboard functionality
   // const [repositories, setRepositories] = useState([]);
@@ -148,14 +147,34 @@ export default function Dashboard() {
   // Add refresh effect
   useEffect(() => {
     const refreshSubscription = async () => {
+      if (isRefreshing) return;
+      
+      setIsRefreshing(true);
       await fetchSubscription();
       setHasCheckedSubscription(true);
+      setIsRefreshing(false);
     };
     
     if (user?.id) {
       refreshSubscription();
     }
-  }, [user?.id, fetchSubscription]);
+  }, [user?.id, fetchSubscription, isRefreshing]);
+
+  // Check for payment success from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const paymentIntent = window.localStorage.getItem('stripe_payment_intent');
+      if (paymentIntent) {
+        // Clear the payment intent from localStorage
+        window.localStorage.removeItem('stripe_payment_intent');
+        
+        // Force refresh subscription data
+        if (user?.id && !isRefreshing) {
+          fetchSubscription();
+        }
+      }
+    }
+  }, [user?.id, fetchSubscription, isRefreshing]);
 
   useEffect(() => {
     if (user?.id) {
@@ -191,6 +210,14 @@ export default function Dashboard() {
   //   }
   // }, [hasCompletedOnboarding, router]);
 
+  // Manual refresh function
+  const handleManualRefresh = () => {
+    if (!isRefreshing) {
+      fetchSubscription();
+      window.location.reload();
+    }
+  };
+
   // Update the loading check
   if (!user && (isAuthLoading || isTrialLoading) && !hasCheckedSubscription) {
     console.log('user: ', user)
@@ -200,11 +227,19 @@ export default function Dashboard() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground mb-4 mx-auto"></div>
-          <p className="text-foreground">
+          <p className="text-foreground mb-4">
             {authTimeout ? 
               "Taking longer than usual? Try refreshing the page 😊." :
               "Verifying access..."}
           </p>
+          {authTimeout && (
+            <button 
+              onClick={handleManualRefresh}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark"
+            >
+              Refresh Now
+            </button>
+          )}
         </div>
       </div>
     );

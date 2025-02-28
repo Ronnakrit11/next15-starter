@@ -23,7 +23,7 @@ export function useSubscription() {
   const [error, setError] = useState<string | null>(null);
 
   const subscriptionCache = new Map<string, {data: Subscription | null, timestamp: number}>();
-  const CACHE_DURATION = 30000; // 30 seconds
+  const CACHE_DURATION = 10000; // Reduced to 10 seconds for faster updates
 
   const fetchSubscription = useCallback(async () => {
     if (!user?.id) {
@@ -43,15 +43,19 @@ export function useSubscription() {
     }
 
     try {
+      setLoading(true);
+      console.log('Fetching subscription for user:', user.id);
+      
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
         .eq('user_id', user.id)
-        .in('status', ['active', 'trialing'])
         .order('created_at', { ascending: false })
         .maybeSingle();
 
       if (error) throw error;
+
+      console.log('Subscription data:', data);
 
       const isValid = data && 
         ['active', 'trialing'].includes(data.status) && 
@@ -97,6 +101,7 @@ export function useSubscription() {
       }
 
       try {
+        console.log('Syncing subscription with Stripe:', subscriptionId);
         const response = await fetch('/api/stripe/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -115,7 +120,7 @@ export function useSubscription() {
         setError(error instanceof Error ? error.message : 'Failed to sync with Stripe');
         setSyncRetries(prev => prev + 1);
       }
-    }, 30000), // 30 second delay between calls
+    }, 5000), // Reduced to 5 seconds for faster updates
     [fetchSubscription, syncRetries]
   );
 
@@ -137,6 +142,7 @@ export function useSubscription() {
           filter: `user_id=eq.${user.id}`
         },
         async (payload) => {
+          console.log('Subscription updated:', payload);
           const isValid = checkValidSubscription([payload.new as Subscription]);
           setSubscription(isValid ? payload.new as Subscription : null);
           if (!isValid) {
@@ -175,4 +181,4 @@ export function useSubscription() {
     }, [debouncedSyncWithStripe]),
     fetchSubscription // Expose fetch function for manual refresh
   };
-} 
+}
