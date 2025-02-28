@@ -59,7 +59,7 @@ export function useTrialStatus() {
         } else {
           // Create new trial for user
           const trialEndTime = new Date();
-          trialEndTime.setHours(trialEndTime.getHours() + 48);
+          trialEndTime.setHours(trialEndTime.getHours() + 1); // Changed from 48 to 1 hour
 
           const { data: newTrial, error: insertError } = await supabase
             .from('user_trials')
