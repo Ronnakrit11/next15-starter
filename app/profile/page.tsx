@@ -242,7 +242,7 @@ function ProfileContent() {
               {isInTrial ? (
                 <>
                   <p className="text-yellow-600 dark:text-yellow-400">
-                    You are currently in your 1-hour trial period. Your trial will end on {' '}
+                    You are currently in trial period. Your trial will end on {' '}
                     {trialEndTime ? new Date(trialEndTime).toLocaleDateString() : 'soon'}.
                   </p>
                   <p>Subscribe now to continue using the app after the trial ends.</p>
