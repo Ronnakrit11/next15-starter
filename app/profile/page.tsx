@@ -7,9 +7,6 @@ import { useSubscription } from '@/hooks/useSubscription';
 import Link from 'next/link';
 import { AccountManagement } from '@/components/AccountManagement';
 import { ErrorBoundary } from 'react-error-boundary';
-import { Suspense } from 'react';
-import LoadingSpinner from '@/components/LoadingSpinner';
-import { StripeBuyButton } from '@/components/StripeBuyButton';
 
 function ProfileContent() {
   const { user } = useAuth();
@@ -17,8 +14,6 @@ function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const paymentStatus = searchParams.get('payment');
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Show payment success message if redirected from successful payment
@@ -87,30 +82,7 @@ function ProfileContent() {
     }
   }, [user?.id, fetchSubscription]);
 
-  const handleCancelSubscription = async () => {
-    if (!subscription?.stripe_subscription_id) return;
-    
-    setIsCancelling(true);
-    try {
-      const response = await fetch('/api/stripe/cancel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          subscriptionId: subscription.stripe_subscription_id 
-        }),
-      });
-      
-      if (!response.ok) throw new Error('Failed to cancel subscription');
-      
-      setIsCancelModalOpen(false);
-      router.refresh();
-    } catch (error) {
-      console.error('Error canceling subscription:', error);
-    } finally {
-      setIsCancelling(false);
-    }
-  };
-
+  // Handle reactivating a subscription
   const handleReactivateSubscription = async () => {
     if (!subscription?.stripe_subscription_id) return;
     
@@ -125,9 +97,11 @@ function ProfileContent() {
       
       if (!response.ok) throw new Error('Failed to reactivate subscription');
       
+      await fetchSubscription();
       router.refresh();
     } catch (error) {
       console.error('Error reactivating subscription:', error);
+      setError('Failed to reactivate subscription. Please try again.');
     }
   };
 
@@ -212,12 +186,6 @@ function ProfileContent() {
                       className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg"
                     >
                       Go to Dashboard
-                    </button>
-                    <button
-                      onClick={() => setIsCancelModalOpen(true)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-                    >
-                      Cancel Subscription
                     </button>
                   </div>
                 </>
