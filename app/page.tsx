@@ -2,9 +2,6 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { PricingSection } from '@/components/PricingSection';
-import { useTrialStatus } from '@/hooks/useTrialStatus';
-// import { DemoWidget } from '@/components/DemoWidget';
-// import { MetricCard } from '@/components/MetricCard';
 import { TypewriterEffect } from '@/components/TypewriterEffect';
 import { FaReddit } from 'react-icons/fa';
 import { 
@@ -179,7 +176,6 @@ const featureCards = [
 
 export default function LandingPage() {
   const { user } = useAuth();
-  const { isInTrial } = useTrialStatus();
   const [activeSection, setActiveSection] = useState("overview");
   const sectionProgressValues = useSectionProgressValues(workflowSections.length);
   
@@ -262,10 +258,10 @@ export default function LandingPage() {
                   Watch Demo
                 </motion.button>
                 <button 
-                  onClick={() => router.push('/dashboard')} 
+                  onClick={() => router.push('/profile')} 
                   className="px-8 py-3 bg-white dark:bg-neutral-dark hover:bg-slate-50 dark:hover:bg-neutral-darker text-primary dark:text-primary-light border-2 border-primary dark:border-primary-light rounded-lg shadow-lg hover:shadow-xl transition-all"
                 >
-                  Start Free Trial
+                  Get Started
                 </button>
               </div>
             </div>
@@ -401,10 +397,10 @@ export const DevLife = () => {
                 <motion.button 
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => router.push('/dashboard')}
+                  onClick={() => router.push('/profile')}
                   className="px-8 py-3 bg-white dark:bg-neutral-dark hover:bg-slate-50 dark:hover:bg-neutral-darker text-primary dark:text-primary-light border-2 border-primary dark:border-primary-light rounded-lg shadow-lg hover:shadow-xl transition-all"
                 >
-                  Start Free Trial
+                  Get Started
                 </motion.button>
               </div>
             </div>
@@ -420,4 +416,3 @@ export const DevLife = () => {
     </div>
   );
 }
-

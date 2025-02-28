@@ -47,35 +47,24 @@ export function useTrialStatus() {
         }
 
         if (trial) {
-          // Check if trial is still valid
-          const now = new Date();
-          const endTime = new Date(trial.trial_end_time);
-          const isInTrial = !trial.is_trial_used && now < endTime;
-
+          // Set trial as used/expired regardless of time
           setTrialStatus({
-            isInTrial,
+            isInTrial: false,
             trialEndTime: trial.trial_end_time
           });
+          
+          // Mark trial as used if not already
+          if (!trial.is_trial_used) {
+            await supabase
+              .from('user_trials')
+              .update({ is_trial_used: true })
+              .eq('user_id', user.id);
+          }
         } else {
-          // Create new trial for user
-          const trialEndTime = new Date();
-          trialEndTime.setHours(trialEndTime.getHours() + 1); // Changed from 48 to 1 hour
-
-          const { data: newTrial, error: insertError } = await supabase
-            .from('user_trials')
-            .upsert({ // Use upsert instead of insert to handle duplicates
-              user_id: user.id,
-              trial_end_time: trialEndTime.toISOString(),
-              is_trial_used: false
-            })
-            .select('trial_end_time')
-            .single();
-
-          if (insertError) throw insertError;
-
+          // No trial exists, but we won't create one
           setTrialStatus({
-            isInTrial: true,
-            trialEndTime: newTrial.trial_end_time
+            isInTrial: false,
+            trialEndTime: null
           });
         }
       } catch (error) {
